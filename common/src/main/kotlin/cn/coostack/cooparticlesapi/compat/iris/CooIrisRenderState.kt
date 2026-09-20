@@ -1,9 +1,18 @@
 package cn.coostack.cooparticlesapi.compat.iris
 
+import net.irisshaders.iris.gl.framebuffer.GlFramebuffer
+import net.irisshaders.iris.targets.DepthTexture
+import net.irisshaders.iris.targets.RenderTargets
+
 object CooIrisRenderState {
-    fun snapshot(): IrisSnapshot = EmptySnapshot
+    fun beginFrame() {}
+    fun captureSceneDepth(depth: DepthTexture?, width: Int, height: Int) {}
+    fun captureTerrainDepth(textureId: Int, width: Int, height: Int) {}
+    fun captureNoHandDepth(textureId: Int, width: Int, height: Int) {}
+    fun captureFinalColor(colorAttachment0: Any?, framebufferId: Int, width: Int, height: Int) {}
     fun clear() {}
     fun clearFinalColor() {}
+    fun snapshot(): IrisSnapshot = EmptySnapshot
 
     object EmptySnapshot : IrisSnapshot {
         override fun terrainDepthTextureId(): Int = 0
