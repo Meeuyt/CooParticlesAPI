@@ -3,14 +3,12 @@ package cn.coostack.cooparticlesapi.network.particle.data
 import kotlin.random.Random
 
 class DoubleRangeData(min: Double, max: Double) : RangeData<Double>(min, max) {
-
     fun random(): Double {
         if (min - max <= 10e-6) {
             return max
         }
         return Random.nextDouble(min, max)
     }
-
 }
 
 infix fun Double.isIn(range: DoubleRangeData): Boolean {

@@ -1,25 +1,15 @@
 package cn.coostack.cooparticlesapi.network.packet.server
 
 import cn.coostack.cooparticlesapi.CooParticlesConstants
-import cn.coostack.cooparticlesapi.annotations.CooAutoRegister
-import cn.coostack.cooparticlesapi.network.packet.api.ClientContext
-import cn.coostack.cooparticlesapi.network.packet.api.CooPacket
 import cn.coostack.cooparticlesapi.renderer.pipeline.CooUniformValue
 import cn.coostack.cooparticlesapi.renderer.terrain.CooTerrainEffectComposition
 import cn.coostack.cooparticlesapi.renderer.terrain.CooTerrainMappingInstance
 import cn.coostack.cooparticlesapi.renderer.terrain.CooTerrainMappingRegion
 import cn.coostack.cooparticlesapi.renderer.terrain.CooTerrainMappingRegistry
 import net.minecraft.network.PacketByteBuf
-
 import net.minecraft.resources.ResourceLocation
 
-/**
- * 程序化 terrain mapping 的服务端到客户端同步包。
- *
- * 包只携带区域参数和实例参数，不携带 BlockPos、非空气方块或高度图结果。
- */
-@CooAutoRegister
-class PacketTerrainMappingS2C() : CooPacket() {
+class PacketTerrainMappingS2C {
     var operation: Int = REPLACE
     var dimension: ResourceLocation = ResourceLocation.withDefaultNamespace("overworld")
     var instanceId: ResourceLocation = ResourceLocation.fromNamespaceAndPath(CooParticlesConstants.MOD_ID, "empty")
@@ -40,9 +30,9 @@ class PacketTerrainMappingS2C() : CooPacket() {
         PACKET_ID
     )
 
-    override fun codec(): cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<PacketTerrainMappingS2C> = CODEC
+    override fun codec(): CommonStreamCodec<PacketTerrainMappingS2C> = CODEC
 
-    override fun onClientReceive(context: ClientContext) {
+    override fun onClientReceive(context: cn.coostack.cooparticlesapi.network.packet.api.ClientContext) {
         context.client.execute {
             when (operation) {
                 REPLACE -> CooTerrainMappingRegistry.install(toInstance())
@@ -77,8 +67,7 @@ class PacketTerrainMappingS2C() : CooPacket() {
         private const val REPLACE = 0
         private const val UPDATE_UNIFORMS = 1
         private const val REMOVE = 2
-        private val CODEC: cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<PacketTerrainMappingS2C> =
-            cn.coostack.cooparticlesapi.network.packet.api.CommonCodec.of(::encode, ::decode)
+        val CODEC: CommonStreamCodec<PacketTerrainMappingS2C> = CommonStreamCodec.of(::encode, ::decode)
 
         internal fun replace(instance: CooTerrainMappingInstance, pipelineId: ResourceLocation): PacketTerrainMappingS2C =
             PacketTerrainMappingS2C().also {

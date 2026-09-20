@@ -3,28 +3,16 @@ package cn.coostack.cooparticlesapi.network.particle.emitters
 import cn.coostack.cooparticlesapi.cparticle.CParticleColorCurve
 import cn.coostack.cooparticlesapi.cparticle.CParticleCurve
 import cn.coostack.cooparticlesapi.utils.GraphMathHelper
-import net.minecraft.network.PacketByteBuf
-
+import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.codec.StreamCodec
 import org.joml.Vector3f
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
-/**
- * 防止老是要手写等 一堆莫名其妙的随机数据而设立的
- * @param maxAge 粒子最大生命周期
- * @param minAge 粒子最小生命周期
- * @param maxCount 粒子最大个数
- * @param minCount 粒子最小个数
- * @param maxSize 粒子最大尺寸
- * @param minSize 粒子最小尺寸
- * @param maxSpeed 粒子最大速度
- * @param minSpeed 粒子最小速度
- *
- */
 class SimpleRandomParticleData {
 
     companion object {
-        val PACKET_CODEC = cn.coostack.cooparticlesapi.network.packet.api.CommonCodec.of({ buf, it ->
+        val PACKET_CODEC: ForgeStreamCodec<PacketByteBuf, SimpleRandomParticleData> = ForgeStreamCodec.of({ buf, it ->
             buf.apply {
                 writeInt(it.maxAge)
                 writeInt(it.minAge)
@@ -81,21 +69,12 @@ class SimpleRandomParticleData {
         })
     }
 
-    /**
-     * 解决你写粒子随机生命周期的参数
-     */
     var maxAge = 10
     var minAge = 1
 
-    /**
-     * 解决你写粒子随机个数的参数
-     */
     var maxCount = 10
     var minCount = 1
 
-    /**
-     * 解决你写粒子随机大小的参数
-     */
     private var currentMaxSize = 0.3
     var maxSize: Double
         get() = currentMaxSize
@@ -123,9 +102,6 @@ class SimpleRandomParticleData {
     var maxSizeZ = currentMaxSize
     var minSizeZ = currentMinSize
 
-    /**
-     * 解决你写粒子随机速度的参数
-     */
     var minSpeed = 0.1
     var maxSpeed = 1.0
 
@@ -141,7 +117,6 @@ class SimpleRandomParticleData {
 
     var leftColor = Vector3f(1f, 1f, 1f)
     var rightColor = Vector3f(1f, 1f, 1f)
-
 
     fun getRandomParticleMaxAge(): Int = if (maxAge > minAge) {
         Random.nextInt(minAge, maxAge)
@@ -266,5 +241,4 @@ class SimpleRandomParticleData {
     private fun getInterpolatedFloat(progress: Number, min: Float, max: Float): Float {
         return GraphMathHelper.lerp(progress.toDouble(), min, max)
     }
-
 }

@@ -1,0 +1,83 @@
+plugins {
+    id 'multiloader-loader'
+    id 'net.minecraftforge.gradle'
+}
+
+tasks.javadoc {
+    enabled = false
+}
+
+tasks.named('processResources', ProcessResources) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+minecraft {
+    version = forge_version
+    mappings channel: 'parchment', version: "${parchment_minecraft}-${parchment_version}"
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+        }
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+        }
+        data {
+            workingDirectory project.file('run')
+            args '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+    }
+}
+
+tasks.register("sourceWithCommon", Jar) {
+    def current = tasks.named("sourcesJar").get()
+    dependsOn(current)
+    from current.outputs.files.collect { zipTree(it) }
+    def other = project(":common").tasks.named("sourcesJar")
+    dependsOn(other)
+    from zipTree(other.get().archiveFile)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    destinationDirectory.set(file("../builds/sources"))
+    archiveFileName = "${rootProject.mod_name}-Forge-Source-${rootProject.version}.jar"
+}
+
+tasks.named('jar', Jar) {
+    destinationDirectory.set(file("../builds/jar"))
+    archiveFileName.set("${rootProject.mod_name}-Forge-${rootProject.minecraft_version}-${rootProject.version}.jar")
+    dependsOn(tasks.named("sourceWithCommon"))
+}
+
+repositories {
+    maven {
+        name = "Kotlin for Forge"
+        url = "https://thedarkcolour.github.io/KotlinForForge/"
+    }
+    maven {
+        name = "jsdu-snapshot"
+        url = "https://nexus.jsdu.cn/snapshots"
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
+    maven {
+        name = "jsdu"
+        url = "https://nexus.jsdu.cn/repository"
+    }
+    flatDir {
+        dirs "../depend"
+    }
+}
+
+dependencies {
+    compileOnly fileTree(dir: "../compile_only_depend", includes: ["*.jar"])
+    compileOnly "maven.modrinth:sodium:mc1.20.1-0.5.8-forge"
+    implementation "thedarkcolour:kotlinforforge-forge:5.10.0"
+    additionalRuntimeClasspath fileTree(dir: "../depend", includes: ["*.jar"])
+}
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+}

@@ -5,15 +5,15 @@ import cn.coostack.cooparticlesapi.renderer.post.PostEffectBinding
 import cn.coostack.cooparticlesapi.renderer.post.PostEffectLifecycle
 import cn.coostack.cooparticlesapi.renderer.post.PostEffectParams
 import cn.coostack.cooparticlesapi.renderer.post.SyncedPostEffectState
+import cn.coostack.cooparticlesapi.renderer.pipeline.CooUniformValue
 import net.minecraft.network.PacketByteBuf
-
 import net.minecraft.resources.ResourceLocation
 
 class PacketRendererPostEffectS2C private constructor(
     internal val operation: Operation,
     internal val state: SyncedPostEffectState?,
     internal val instanceId: String
-)  {
+) {
     internal enum class Operation(val id: Int) {
         CREATE(0),
         UPDATE(1),
@@ -29,20 +29,19 @@ class PacketRendererPostEffectS2C private constructor(
     companion object {
         private val identifierID =
             ResourceLocation.fromNamespaceAndPath(CooParticlesConstants.MOD_ID, "renderer_post_effect_packet")
-        val payloadID = ResourceLocation(identifierID)
+        val payloadID = ResourceLocation.fromNamespaceAndPath(CooParticlesConstants.MOD_ID, "renderer_post_effect_packet")
 
-        @JvmStatic
-        val CODEC: cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<PacketRendererPostEffectS2C> = cn.coostack.cooparticlesapi.network.packet.api.CommonCodec.of({ buf, packet ->
-                buf.writeInt(packet.operation.id)
-                buf.writeUtf(packet.instanceId)
-                buf.writeBoolean(packet.state != null)
-                packet.state?.write(buf)
-            }, { buf ->
-                val operation = Operation.idOf(buf.readInt())
-                val instanceId = buf.readUtf()
-                val state = if (buf.readBoolean()) readState(buf) else null
-                PacketRendererPostEffectS2C(operation, state, instanceId)
-            })
+        val CODEC = ForgeStreamCodec.of({ packet, buf ->
+            buf.writeInt(packet.operation.id)
+            buf.writeUtf(packet.instanceId)
+            buf.writeBoolean(packet.state != null)
+            packet.state?.write(buf)
+        }, { buf ->
+            val operation = Operation.idOf(buf.readInt())
+            val instanceId = buf.readUtf()
+            val state = if (buf.readBoolean()) readState(buf) else null
+            PacketRendererPostEffectS2C(operation, state, instanceId)
+        })
 
         internal fun create(state: SyncedPostEffectState): PacketRendererPostEffectS2C {
             return PacketRendererPostEffectS2C(Operation.CREATE, state, state.instanceId)

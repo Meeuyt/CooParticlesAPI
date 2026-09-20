@@ -1,16 +1,17 @@
 package cn.coostack.cooparticlesapi.platform
 
-import cn.coostack.cooparticlesapi.network.packet.api.CooPacket
 import cn.coostack.cooparticlesapi.network.packet.api.envelope.CooPacketEnvelopeC2S
 import cn.coostack.cooparticlesapi.network.packet.api.envelope.CooPacketEnvelopeS2C
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.ChunkPos
 import net.minecraftforge.network.NetworkEvent
 import net.minecraftforge.network.simple.SimpleChannel
 
-class ForgeNetworkChannel(private val modId: String) {
+object ForgeNetworkChannel {
     val channel: SimpleChannel = net.minecraftforge.network.NetworkRegistry.newSimpleChannel(
-        ResourceLocation(modId, "main"),
+        ResourceLocation(CooParticlesConstants.MOD_ID, "main"),
         { true },
         { true },
         { true }
@@ -41,16 +42,17 @@ class ForgeNetworkChannel(private val modId: String) {
         )
     }
 
-    fun sendTo(player: net.minecraft.server.level.ServerPlayer, packet: CooPacket) {
-        channel.sendTo(player, packet)
+    fun sendEnvelopeS2CTo(envelope: CooPacketEnvelopeS2C, player: ServerPlayer) {
+        channel.sendTo(player, envelope)
     }
 
-    fun sendToAll(packet: CooPacket) {
-        channel.sendToAll(packet)
+    fun sendEnvelopeS2CToAll(envelope: CooPacketEnvelopeS2C) {
+        channel.sendToAll(envelope)
     }
 
-    fun sendToServer(packet: CooPacket) {
-        channel.sendToServer(packet)
+    fun sendEnvelopeS2CToTrackingChunk(envelope: CooPacketEnvelopeS2C, world: ServerLevel, chunk: ChunkPos) {
+        val players = world.getChunkSource().chunkMap.getPlayers(chunk.x, chunk.z, false)
+        players.forEach { channel.sendTo(it as ServerPlayer, envelope) }
     }
 
     fun sendEnvelopeC2S(packet: CooPacketEnvelopeC2S) {

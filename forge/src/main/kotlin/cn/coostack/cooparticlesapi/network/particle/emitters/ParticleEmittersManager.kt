@@ -14,8 +14,8 @@ import cn.coostack.cooparticlesapi.platform.CooParticlesServices
 import cn.coostack.cooparticlesapi.reflect.SimpleClassInfo
 import io.netty.buffer.Unpooled
 import net.minecraft.client.Minecraft
-import net.minecraft.network.PacketByteBuf
-
+import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.network.codec.StreamCodec
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
@@ -25,40 +25,27 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 object ParticleEmittersManager {
-    // 已经start的 emitters
-    val emittersCodec = HashMap<String, cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<ParticleEmitters>>()
+    val emittersCodec = HashMap<String, ForgeStreamCodec<PacketByteBuf, ParticleEmitters>>()
 
-    /**
-     * 服务器拥有
-     */
     val serverEmitters = HashMap<UUID, ParticleEmitters>()
     internal val visible = ConcurrentHashMap<UUID, MutableSet<ParticleEmitters>>()
     private val dirtyEmitters = ConcurrentHashMap.newKeySet<UUID>()
 
-    /**
-     * 客户端可视
-     */
     val clientEmitters = ConcurrentHashMap<UUID, ParticleEmitters>()
 
-    /** 返回客户端当前可见 Emitter 数。 */
     fun clientEmitterCount(): Int = clientEmitters.size
 
-    /** 返回服务端当前 Emitter 数。 */
     fun serverEmitterCount(): Int = serverEmitters.size
 
-    fun getCodecFromID(id: String): cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<ParticleEmitters>? {
+    fun getCodecFromID(id: String): ForgeStreamCodec<PacketByteBuf, ParticleEmitters>? {
         return emittersCodec[id]
     }
 
-
-    /**
-     * 在客户端执行
-     */
     @JvmStatic
     fun register(
         id: String,
-        codec: cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<ParticleEmitters>
-    ): cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<ParticleEmitters> {
+        codec: ForgeStreamCodec<PacketByteBuf, ParticleEmitters>
+    ): ForgeStreamCodec<PacketByteBuf, ParticleEmitters> {
         emittersCodec[id] = codec
         return codec
     }
@@ -69,7 +56,6 @@ object ParticleEmittersManager {
         val id = randomInstance.getEmittersID()
         register(id, codec)
     }
-
 
     @JvmStatic
     fun addEmitters(emitters: ParticleEmitters) {
@@ -187,11 +173,6 @@ object ParticleEmittersManager {
         return set
     }
 
-    /**
-     * 玩家离开服务器时清理其 Emitter 可见缓存，使重连后重新发送创建包。
-     *
-     * @param player 已断开连接的服务端玩家
-     */
     fun clearVisibleFor(player: Player) {
         visible.remove(player.uuid)
     }
@@ -202,7 +183,6 @@ object ParticleEmittersManager {
         server.playerList.players.forEach { p ->
             val visibleSet = visible.getOrPut(p.uuid) { HashSet() }
             if (p.level().dimension() != emitters.world?.dimension()) {
-                // 世界转换
                 if (emitters in visibleSet) {
                     removeView(p, emitters)
                     visibleSet!!.remove(emitters)
@@ -312,11 +292,10 @@ object ParticleEmittersManager {
         )
     }
 
-
     private fun encodeEmittersToArray(emitters: ParticleEmitters): ByteArray {
         val codec = emitters.getCodec()
         val registryAccess = emitters.world?.registryAccess() ?: CooParticlesAPI.registryAccessOrNull ?: return ByteArray(0)
-        val buf = PacketByteBuf(
+        val buf = RegistryFriendlyByteBuf(
             Unpooled.buffer(),
             registryAccess
         )
@@ -379,7 +358,6 @@ object ParticleEmittersManager {
             )
             return
         }
-        // 获取instance
         val instance =
             clazz.declaredConstructors.find {
                 it.parameterCount == 0

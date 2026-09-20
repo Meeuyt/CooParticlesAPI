@@ -2,7 +2,6 @@ package cn.coostack.cooparticlesapi.network.packet.server
 
 import cn.coostack.cooparticlesapi.CooParticlesConstants
 import net.minecraft.network.PacketByteBuf
-
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.phys.Vec3
@@ -24,7 +23,7 @@ class PacketSoundInstanceS2C(
     val whitelistSounds: Set<ResourceLocation>,
     val whitelistSources: Set<SoundSource>,
     val whitelistKeys: Set<String>
-)  {
+) {
     enum class Action {
         PLAY,
         UPDATE,
@@ -36,11 +35,14 @@ class PacketSoundInstanceS2C(
 
     companion object {
         private val identifierID = ResourceLocation.fromNamespaceAndPath(CooParticlesConstants.MOD_ID, "sound_instance")
-        val payloadID = ResourceLocation(identifierID)
+        val payloadID = ResourceLocation.fromNamespaceAndPath(CooParticlesConstants.MOD_ID, "sound_instance")
 
         private val emptySound = ResourceLocation.withDefaultNamespace("empty")
 
-        val CODEC: cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<PacketSoundInstanceS2C> = buf.writeUtf(packet.key)
+        val CODEC = ForgeStreamCodec.of(
+            { packet, buf ->
+                buf.writeEnum(packet.action)
+                buf.writeUtf(packet.key)
                 buf.writeResourceLocation(packet.sound)
                 buf.writeEnum(packet.source)
                 buf.writeInt(packet.entityId)
@@ -232,3 +234,4 @@ class PacketSoundInstanceS2C(
             return result
         }
     }
+}

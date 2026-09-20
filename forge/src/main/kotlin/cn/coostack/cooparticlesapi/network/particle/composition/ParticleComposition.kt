@@ -30,7 +30,6 @@ import cn.coostack.cooparticlesapi.utils.helper.impl.composition.CompositionStat
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.network.PacketByteBuf
-
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
@@ -41,16 +40,6 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
 
-/**
- * 因为不想写太多的ControlableBuffer， 而改用Codec自动生成数据 （同时避免写一万个Provider内部类）
- *
- * 所以重构ParticleStyle
- *
- * 首先强制 auto update
- *
- * 使用自动注册
- * @see cn.coostack.cooparticlesapi.annotations.composition.ParticleCompositionRegister
- */
 abstract class ParticleComposition : ServerControler<ParticleComposition>,
     Controlable<ParticleComposition>, Tickable<ParticleComposition>, NetworkDirtyMarkable {
     companion object {
@@ -97,15 +86,11 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         this.position = pos
     }
 
-
     var position: Vec3 = Vec3.ZERO
         protected set
     var world: Level? = null
         internal set
 
-    /**
-     * 粒子可视范围
-     */
     var visibleRange = 256.0
         set(value) {
             if (field == value) return
@@ -123,9 +108,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
 
     var canceled = false
 
-    /**
-     * 如果作为子 composition输入就一定要修改这个
-     */
     var controlUUID = UUID.randomUUID()
 
     var axis = RelativeLocation.yAxis()
@@ -133,24 +115,11 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
     var roll = 0.0
 
     val particles = ConcurrentHashMap<UUID, Controlable<*>>()
-
-    /**
-     * 排除掉 SingleParticleDisplayer 从而减少遍历次数
-     */
     val controlerTicks = HashSet<Tickable<*>>()
-
     val particleLocations = ConcurrentHashMap<Controlable<*>, RelativeLocation>()
-
     val status = CompositionStatusHelper()
-
-    /** 当粒子组合初始化时，存储一倍缩放粒子组与原点的距离。 */
     val particleDefaultLength = ConcurrentHashMap<UUID, Double>()
-
-    /** 保留一倍缩放时的相对向量，使零缩放后的粒子能够恢复方向。 */
     private val particleDefaultLocations = ConcurrentHashMap<UUID, RelativeLocation>()
-
-    // 防止频繁的toList造成的性能浪费
-
     internal val invokeQueue = ArrayList<ParticleComposition.() -> Unit>()
     internal val postInvokeQueue = ArrayList<ParticleComposition.() -> Unit>()
     protected val particleRotatedLocations = ArrayList<RelativeLocation>()
@@ -171,11 +140,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
     private var lastNetworkStatus = status.displayStatus
     private var lastNetworkStatusInterval = status.closedInternal
 
-    /**
-     * 标记此 Composition 的完整网络状态需要重新同步。
-     *
-     * 自定义同步字段优先使用 `var value by dirty(initial)`；普通 `@CodecField` 修改后需要显式调用本方法。
-     */
     override fun markDirty() {
         if (world?.isClientSide != true) {
             networkFullDirty = true
@@ -235,33 +199,22 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         status.updateCurrent(current)
     }
 
-    abstract fun getCodec(): cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<ParticleComposition>
+    abstract fun getCodec(): CommonStreamCodec<ParticleComposition>
 
     abstract fun getParticles(): Map<CompositionData, RelativeLocation>
 
     abstract fun onDisplay()
 
-    /**
-     * 快捷设置 链式调用
-     *
-     * @param interval
-     * @return
-     */
     fun setDisabledInterval(interval: Int): ParticleComposition {
         this.status.closedInternal = interval
         markNetworkStateDirty()
         return this
     }
 
-    /**
-     * 配置此 composition 自动创建的所有 CParticle systems。
-     * 名称、容量、渲染层、模式和生命周期由 composition 管理。
-     */
     fun configureCParticleSystem(configure: CParticleSystem.() -> Unit): ParticleComposition {
         return setCParticleSystemConfiguration(null, configure)
     }
 
-    /** 只配置指定渲染层的 system。 */
     fun configureCParticleSystem(
         layer: CParticleRenderLayer,
         configure: CParticleSystem.() -> Unit,
@@ -280,12 +233,10 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         return this
     }
 
-    /** 返回此 composition 在指定层自动创建的 system；尚未显示时返回 null。 */
     fun getCParticleSystem(layer: CParticleRenderLayer): CParticleSystem? {
         return managedCParticleSystems.firstOrNull { !it.released && it.layer == layer }
     }
 
-    /** 返回此 composition 当前持有的 systems 快照。 */
     fun getCParticleSystems(): List<CParticleSystem> {
         removeReleasedCParticleSystems()
         return referencedCParticleSystems.keys.toList()
@@ -336,20 +287,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         }
     }
 
-    /**
-     * 对当前 composition 创建的所有 CParticle systems 播放同一段 GPU 视觉过渡。
-     *
-     * 示例：`playCParticleVisualTransition(20F, scaleCurve = curve)` 会统一缩放当前 systems。
-     * 禁止：不要用它修改粒子生成时的基础尺寸。
-     *
-     * @param durationTicks 过渡时长，单位 tick
-     * @param alphaCurve 不透明度倍率曲线
-     * @param scaleCurve 等比缩放倍率曲线
-     * @param colorFrom 可选起始颜色
-     * @param colorTo 可选结束颜色
-     * @param mode 过渡结束后的行为
-     * @return 当前 composition
-     */
     @JvmOverloads
     fun playCParticleVisualTransition(
         durationTicks: Float,
@@ -370,21 +307,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         )
     }
 
-    /**
-     * 播放 composition 级 GPU 视觉过渡，并允许强制重新开始相同配置。
-     *
-     * 示例：`playCParticleVisualTransition(20F, true, scaleCurve = curve)` 会重置进度。
-     * 禁止：不要用它修改粒子生成时的基础尺寸。
-     *
-     * @param durationTicks 过渡时长，单位 tick
-     * @param restart 是否强制从头播放
-     * @param alphaCurve 不透明度倍率曲线
-     * @param scaleCurve 等比缩放倍率曲线
-     * @param colorFrom 可选起始颜色
-     * @param colorTo 可选结束颜色
-     * @param mode 过渡结束后的行为
-     * @return 当前 composition
-     */
     @JvmOverloads
     fun playCParticleVisualTransition(
         durationTicks: Float,
@@ -406,21 +328,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         )
     }
 
-    /**
-     * 把同一组过渡参数分发给当前 composition 管理的 systems。
-     *
-     * 示例：公开重载通过本方法统一传递 [restart]。
-     * 禁止：不要在这里缓存已经释放的 system。
-     *
-     * @param durationTicks 过渡时长，单位 tick
-     * @param alphaCurve 不透明度倍率曲线
-     * @param scaleCurve 等比缩放倍率曲线
-     * @param colorFrom 可选起始颜色
-     * @param colorTo 可选结束颜色
-     * @param mode 过渡结束后的行为
-     * @param restart 是否强制从头播放
-     * @return 当前 composition
-     */
     private fun playCParticleVisualTransitionInternal(
         durationTicks: Float,
         alphaCurve: CParticleCurve?,
@@ -444,25 +351,12 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         return this
     }
 
-    /** 停止当前 composition 的 CParticle GPU 视觉过渡。 */
     @JvmOverloads
     fun stopCParticleVisualTransition(reset: Boolean = false): ParticleComposition {
         getCParticleSystems().forEach { it.stopVisualTransition(reset) }
         return this
     }
 
-    /**
-     * 扫描此 composition 的完整运行时子树，为所有 CParticle systems 播放同一段 GPU alpha 过渡。
-     * 子树包括嵌套 composition、ParticleGroupStyle 和 ControlableParticleGroup。
-     * 过渡曲线会覆盖粒子实例的 alpha，再与粒子、system 和普通视觉过渡的 alpha 曲线相乘。
-     *
-     * @param durationTicks 过渡时长，单位为 tick，必须为有限正数
-     * @param alphaCurve 用于覆盖粒子实例 alpha 的曲线
-     * @param mode 过渡结束后的行为
-     * @param restart 是否强制替换相同配置
-     * @return 当前 composition
-     * @throws IllegalArgumentException 当 [durationTicks] 不是有限正数时抛出
-     */
     @JvmOverloads
     fun playCParticleAlphaTransition(
         durationTicks: Float,
@@ -479,8 +373,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         )
     }
 
-    /** 停止此 composition 完整运行时子树中的 CParticle alpha 过渡。 */
-    @JvmOverloads
     fun stopCParticleAlphaTransition(reset: Boolean = false): ParticleComposition {
         return CParticleCompositionAlphaHelper.stop(this, reset)
     }
@@ -524,8 +416,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         if (scale == new) return
         scale = new
         markNetworkStateDirty()
-        // 如果没有创建, 那么此处的环境100%是创建此对象时使用的环境
-        // 多为服务端(除非有人使在Client环境创建了这个类)
         if (displayed) {
             if (gpuTransformActive) {
                 applyGpuScale(new)
@@ -533,9 +423,7 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
                 toggleScaleDisplayed()
             }
         }
-        // 发包有效
         if (!canceled) {
-            // remove过后 无法同步
             return
         }
     }
@@ -572,13 +460,11 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
 
     open fun update(other: ParticleComposition) {
         val newAxis = other.axis.clone()
-
         this.visibleRange = other.visibleRange
         if (this.position != other.position) {
             teleportTo(other.position)
         }
         this.canceled = other.canceled
-
         this.controlUUID = other.controlUUID
         if (this.scale != other.scale) {
             scale(other.scale)
@@ -602,14 +488,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         return this
     }
 
-    /**
-     * 清除当前显示内容，并按 [cancel] 决定是否结束本次生命周期。
-     *
-     * 示例：`clear(true)` 会销毁子节点并从客户端活动计数中移除本实例。
-     * 禁止用 `clear(false)` 表示最终移除，因为该模式用于保留 displayed 状态后重新生成内容。
-     *
-     * @param cancel `true` 表示结束生命周期，`false` 表示仅刷新显示内容
-     */
     open fun clear(cancel: Boolean) {
         particles.forEach {
             it.value.remove()
@@ -628,12 +506,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         }
     }
 
-    /**
-     * 在服务端重新生成 Composition 前重置旧生命周期状态。
-     *
-     * 示例：同一实例再次调用 `spawn(...)` 时先执行本方法，避免沿用 canceled 状态。
-     * 禁止在仍需保留当前客户端显示内容时调用。
-     */
     internal fun resetLifecycleForSpawn() {
         ParticleCompositionManager.setClientLoaded(this, false)
         canceled = false
@@ -644,12 +516,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         lastNetworkStatusInterval = status.closedInternal
     }
 
-    /**
-     * 根据当前世界进入服务端同步或客户端显示生命周期。
-     *
-     * 示例：客户端直接显示的嵌套 Composition 会在此登记为活动实例。
-     * 禁止在 [world] 尚未设置时调用。
-     */
     open fun display() {
         if (displayed) {
             return
@@ -659,12 +525,10 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         if (client) {
             ParticleCompositionManager.setClientLoaded(this, true)
         }
-        // 在服务器需要用来更新粒子个数 所以需要参与一次计算
         flush()
         status.loadControler(this)
         status.initHelper()
         if (!client) {
-            // 服务器只负责数据同步 不负责粒子生成
             onDisplay()
             return
         }
@@ -684,7 +548,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         }
     }
 
-    /** 按一倍缩放缓存恢复方向后应用当前缩放，避免从零缩放恢复时产生 NaN。 */
     protected fun applyScale(uuid: UUID, location: RelativeLocation) {
         val defaultLength = particleDefaultLength[uuid] ?: return
         if (defaultLength <= 0.0) return
@@ -719,7 +582,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
                 staleControls.add(particle)
                 continue
             }
-            // 减少一倍的new Vec3
             try {
                 particle.teleportTo(
                     position.add(rel.x, rel.y, rel.z)
@@ -836,7 +698,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
     override fun spawn(world: Level, pos: Vec3) {
         this.world = world
         this.position = pos
-        // display
         ParticleCompositionManager.spawn(this)
     }
 
@@ -887,15 +748,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         toggleRelative()
     }
 
-    /**
-     * 显示一个相对坐标对应的粒子节点。
-     *
-     * 示例：普通粒子以 [position] 为原点，启用整组变换的 managed CParticle 先计算实际渲染坐标。
-     * 禁止把 system 局部坐标直接当作世界坐标，否则光照和位置相关纹理会从错误位置采样。
-     *
-     * @param data 粒子显示方式和初始化动作
-     * @param pos 已完成初始缩放与旋转的相对坐标
-     */
     protected open fun displayEntry(data: CompositionData, pos: RelativeLocation) {
         val uuid = data.uuid
         val displayer = data.displayerBuilder(uuid)
@@ -930,12 +782,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
                 handler(controler)
             }
         }
-        if (controler is CParticleControlable) {
-            data.cParticleControlerHandlers.forEach { handler ->
-                handler(controler)
-            }
-        }
-        registerCParticleNode(controler)
         if (controler is CParticleControlable && controler.hasTickActions) {
             controlerTicks.add(controler)
         } else if (controler is Tickable<*> && controler !is CParticleControlable) {
@@ -945,7 +791,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         particles[uuid] = controler
         particleLocations[controler] = pos
     }
-
 
     protected open fun displayParticles() {
         if (!client) {
@@ -973,15 +818,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         particleRotatedLocations.add(pos)
     }
 
-    /**
-     * 为未绑定的 CParticle displayer 取得当前 composition 专用的 system。
-     *
-     * 示例：同一 composition、渲染层和纹理绑定会复用同一个 system。
-     * 禁止覆盖调用方已经绑定的 system；这种情况返回 `null` 并保留原有行为。
-     *
-     * @param displayer 待绑定的 GPU 粒子显示器
-     * @return 本次绑定的 managed system；无法绑定或已有外部绑定时返回 `null`
-     */
     private fun bindManagedSystem(displayer: CParticleDisplayer): CParticleSystem? {
         if (displayer.hasBoundSystem) return null
         val layerName = displayer.layer.name.lowercase()
@@ -1027,16 +863,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         return target
     }
 
-    /**
-     * 计算粒子显示与环境采样使用的世界坐标。
-     *
-     * 示例：整组变换启用后，序列后续粒子使用 system 当前矩阵换算真实渲染位置。
-     * 禁止在这里返回槽位局部坐标；[CParticleSystem] 会在写入时自行逆变换。
-     *
-     * @param pos composition 中保存的相对坐标
-     * @param managedSystem 当前 composition 管理的 GPU system，普通显示器传 `null`
-     * @return 写入显示器的世界坐标
-     */
     internal fun resolveCParticleSpawnPosition(
         pos: RelativeLocation,
         managedSystem: CParticleSystem?,
@@ -1054,16 +880,6 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         )
     }
 
-    /**
-     * 返回整组 GPU 变换启用时使用的稳定槽位坐标。
-     *
-     * 示例：system 原点为 `(10, 20, 30)` 时，相对坐标 `(2, 3, 4)` 写为 `(12, 23, 34)`。
-     * 禁止在 CPU 路径提供该坐标；此时 system 需要按现存矩阵逆变换真实世界坐标。
-     *
-     * @param pos composition 保存的相对坐标
-     * @param managedSystem 当前 composition 管理的 GPU system
-     * @return 槽位写入坐标；不使用整组 GPU 变换时返回 `null`
-     */
     internal fun resolveCParticleStoragePosition(
         pos: RelativeLocation,
         managedSystem: CParticleSystem?,
@@ -1072,9 +888,9 @@ abstract class ParticleComposition : ServerControler<ParticleComposition>,
         return system.origin.add(pos.x, pos.y, pos.z)
     }
 
-    private fun applyGpuAxisRotation(rotationAxis: RelativeLocation, radian: Double) {
+    private fun applyGpuAxisRotation(rotationAxis: RelativeLocation, radian: Float) {
         val axisVector = normalizedAxis(rotationAxis)
-        val delta = Matrix4f().rotate(radian.toFloat(), axisVector)
+        val delta = Matrix4f().rotate(radian.toDouble(), axisVector)
         delta.mul(cParticleLinearTransform, cParticleLinearTransform)
         syncGpuTransform()
     }

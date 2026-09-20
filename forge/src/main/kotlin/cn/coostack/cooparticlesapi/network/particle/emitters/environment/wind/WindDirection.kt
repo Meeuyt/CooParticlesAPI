@@ -1,46 +1,46 @@
 package cn.coostack.cooparticlesapi.network.particle.emitters.environment.wind
 
-import cn.coostack.cooparticlesapi.network.particle.emitters.ParticleEmitters
 import net.minecraft.network.PacketByteBuf
 
-import net.minecraft.world.phys.Vec3
-
 interface WindDirection {
-    /**
-     * 风向
-     * 如果relative 为true 则此选项作废
-     * direction.length() 代表风速大小
-     * 如果设置为0向量 则代表没有风
-     * relative为true 时代表粒子相对发射器位置为风向
-     */
-    var direction: Vec3
-    var relative: Boolean
+    fun nextTick(): Double
+}
 
-    /**
-     *  relative 为false时此功能不启用
-     * 若relative为true
-     * 则此参数代表风力大小
-     * 表达式采用EvalEx3.5.0
-     * 提供的变量 l (代表粒子与发射器的实际距离)
-     * 返回值是风速大小(direction.length())
-     */
-    var windSpeedExpress: String
+object BallWindDirection : WindDirection {
+    override fun nextTick(): Double {
+        TODO("Not yet implemented")
+    }
+}
 
-    fun loadEmitters(emitters: ParticleEmitters): WindDirection
+object BoxWindDirection : WindDirection {
+    override fun nextTick(): Double {
+        TODO("Not yet implemented")
+    }
+}
 
-    fun hasLoadedEmitters(): Boolean
+object GlobalWindDirection : WindDirection {
+    override fun nextTick(): Double {
+        TODO("Not yet implemented")
+    }
+}
 
-    fun getID(): String
-
-    /**
-     * 获得当前位置的风速向量
-     */
-    fun getWind(particlePos: Vec3): Vec3
-
-    /**
-     * 粒子位置是否在可操作范围内
-     */
-    fun inRange(pos: Vec3): Boolean
-
-    fun getCodec(): cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<WindDirection>
+object WindDirections {
+    val CODEC: ForgeStreamCodec<WindDirection> = ForgeStreamCodec.of(
+        { buf, dir ->
+            when (dir) {
+                is BallWindDirection -> buf.writeByte(0)
+                is BoxWindDirection -> buf.writeByte(1)
+                is GlobalWindDirection -> buf.writeByte(2)
+                else -> buf.writeByte(-1)
+            }
+        },
+        { buf ->
+            when (buf.readUnsignedByte().toInt()) {
+                0 -> BallWindDirection
+                1 -> BoxWindDirection
+                2 -> GlobalWindDirection
+                else -> throw IllegalArgumentException("Unknown wind direction type")
+            }
+        }
+    )
 }

@@ -11,7 +11,7 @@ import cn.coostack.cooparticlesapi.network.packet.api.envelope.CooPacketEnvelope
 import cn.coostack.cooparticlesapi.network.packet.api.envelope.CooPacketEnvelopeS2C
 import cn.coostack.cooparticlesapi.performance.PerformanceStatusNetworkEndpoint
 import cn.coostack.cooparticlesapi.performance.PerformanceStatusNetworkMetrics
-import cn.coostack.cooparticlesapi.platform.ForgeNetworkChannel
+import cn.coostack.cooparticlesapi.platform.CooParticlesServices
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -33,14 +33,6 @@ object CooServerPacketManager {
     )
 
     private val pending = ConcurrentHashMap<Long, Pending>()
-    private lateinit var channel: ForgeNetworkChannel
-
-    fun init(channel: ForgeNetworkChannel) {
-        this.channel = channel
-        channel.registerEnvelopeC2S { envelope, player ->
-            handleC2S(envelope, player)
-        }
-    }
 
     @JvmStatic
     fun sendTo(player: ServerPlayer, packet: CooPacket): Boolean {
@@ -79,10 +71,11 @@ object CooServerPacketManager {
 
     @JvmSynthetic
     inline fun <reified R : CooPacket> request(
+        player: ServerPlayer,
         packet: CooPacket,
         timeoutTicks: Int = DEFAULT_TIMEOUT_TICKS,
         noinline onResponse: (R) -> Unit,
-    ): Long = request(packet, R::class.java, timeoutTicks, onResponse)
+    ): Long = request(player, packet, R::class.java, timeoutTicks, onResponse)
 
     @JvmStatic
     fun <R : CooPacket> requestWithSender(
@@ -155,7 +148,7 @@ object CooServerPacketManager {
         packet: CooPacket,
         timeoutTicks: Int = DEFAULT_TIMEOUT_TICKS,
         noinline onResponse: (ServerPlayer, R) -> Unit,
-    ): List<Long> = requestWorlds(worlds, packet, R::class.java, timeoutTicks, onResponse)
+    ): List<Long> = requestWorlds(worlds, R::class.java, timeoutTicks, onResponse)
 
     @JvmStatic
     fun cancelRequest(correlationId: Long): Boolean {
@@ -211,7 +204,7 @@ object CooServerPacketManager {
         val packet = CooPacketRegistry.decode(envelope.packetId, envelope.data)
         if (packet == null) {
             CooParticlesConstants.logger.warn(
-                "收到未知 CooPacket: ${envelope.packetId} (kind=$kind, sender=${sender.gameProfile.name})"
+                "Received unknown CooPacket: ${envelope.packetId} (kind=$kind, sender=${sender.gameProfile.name})"
             )
             return
         }
@@ -231,14 +224,14 @@ object CooServerPacketManager {
         try {
             packet.onServerReceive(ctx)
         } catch (e: Throwable) {
-            CooParticlesConstants.logger.error("CooPacket onServerReceive 异常: ${envelope.packetId}", e)
+            CooParticlesConstants.logger.error("CooPacket onServerReceive exception: ${envelope.packetId}", e)
         }
 
         if (kind == CooPacketKind.RESPONSE) {
             val pendingEntry = pending.remove(envelope.correlationId) ?: return
             if (!pendingEntry.expectType.isInstance(packet)) {
                 CooParticlesConstants.logger.warn(
-                    "CooPacket 响应类型不匹配: 期望 ${pendingEntry.expectType.name}, 实际 ${packet::class.java.name}"
+                    "CooPacket response type mismatch: expected ${pendingEntry.expectType.name}, got ${packet::class.java.name}"
                 )
                 return
             }
@@ -246,7 +239,7 @@ object CooServerPacketManager {
                 pendingEntry.callback(sender, packet)
             } catch (e: Throwable) {
                 CooParticlesConstants.logger.error(
-                    "CooPacket request 回调异常 (correlationId=${envelope.correlationId})",
+                    "CooPacket request callback exception (correlationId=${envelope.correlationId})",
                     e
                 )
             }
@@ -266,7 +259,7 @@ object CooServerPacketManager {
     ): Boolean {
         if (!CooPacketRegistry.isRegistered(packet::class.java)) {
             CooParticlesConstants.logger.error(
-                "CooPacket 未注册, 无法发送: ${packet::class.java.name} (id=${packet.id()})"
+                "CooPacket not registered, cannot send: ${packet::class.java.name} (id=${packet.id()})"
             )
             return false
         }
@@ -284,7 +277,7 @@ object CooServerPacketManager {
         val data = try {
             CooPacketRegistry.encode(packet)
         } catch (e: Throwable) {
-            CooParticlesConstants.logger.error("CooPacket 编码失败: ${packet::class.java.name}", e)
+            CooParticlesConstants.logger.error("CooPacket encode failed: ${packet::class.java.name}", e)
             return false
         }
         val envelope = CooPacketEnvelopeS2C(
@@ -294,7 +287,7 @@ object CooServerPacketManager {
             timeoutTicks = timeoutTicks,
             data = data,
         )
-        channel.sendTo(player, envelope)
+        CooParticlesServices.SERVER_NETWORK.send(envelope, player)
         PerformanceStatusNetworkMetrics.recordSent(
             PerformanceStatusNetworkEndpoint.SERVER,
             data.size,

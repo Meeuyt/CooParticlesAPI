@@ -2,33 +2,53 @@ package cn.coostack.cooparticlesapi.network.particle.emitters.type
 
 import net.minecraft.network.PacketByteBuf
 
-import net.minecraft.world.phys.Vec3
-
 interface EmittersShootType {
-    /**
-     * 获取id 用于序列化
-     */
-    fun getID(): String
+    fun nextShoot(): Pair<Double, Double>
+}
 
-    /**
-     * 用于序列化发射类型
-     */
-    fun getCodec(): cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<EmittersShootType>
+object BoxEmittersShootType : EmittersShootType {
+    override fun nextShoot(): Pair<Double, Double> {
+        TODO("Not yet implemented")
+    }
+}
 
-    /**
-     * 获取生成粒子的位置
-     * @param origin 添加offset后的位置
-     * @param tick 发射器当前tick
-     * @param count 粒子数量
-     * @return 可能返回多个粒子
-     */
-    fun getPositions(origin: Vec3, tick: Int, count: Int): List<Vec3>
+object LineEmittersShootType : EmittersShootType {
+    override fun nextShoot(): Pair<Double, Double> {
+        TODO("Not yet implemented")
+    }
+}
 
-    /**
-     * 获取粒子的初始方向
-     * @param enter 输入的参数方向
-     * @param pos 粒子生成位置
-     * @param origin 粒子发射器的位置
-     */
-    fun getDefaultDirection(enter: Vec3, tick: Int, pos: Vec3, origin: Vec3): Vec3
+object PointEmittersShootType : EmittersShootType {
+    override fun nextShoot(): Pair<Double, Double> {
+        TODO("Not yet implemented")
+    }
+}
+
+object MathEmittersShootType : EmittersShootType {
+    override fun nextShoot(): Pair<Double, Double> {
+        TODO("Not yet implemented")
+    }
+}
+
+object EmittersShootTypes {
+    val CODEC: ForgeStreamCodec<EmittersShootType> = ForgeStreamCodec.of(
+        { buf, type ->
+            when (type) {
+                is BoxEmittersShootType -> buf.writeByte(0)
+                is LineEmittersShootType -> buf.writeByte(1)
+                is PointEmittersShootType -> buf.writeByte(2)
+                is MathEmittersShootType -> buf.writeByte(3)
+                else -> buf.writeByte(-1)
+            }
+        },
+        { buf ->
+            when (buf.readUnsignedByte().toInt()) {
+                0 -> BoxEmittersShootType
+                1 -> LineEmittersShootType
+                2 -> PointEmittersShootType
+                3 -> MathEmittersShootType
+                else -> throw IllegalArgumentException("Unknown shoot type")
+            }
+        }
+    )
 }

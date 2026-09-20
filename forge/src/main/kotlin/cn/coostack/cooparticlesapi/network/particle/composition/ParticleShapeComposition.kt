@@ -1,13 +1,6 @@
 package cn.coostack.cooparticlesapi.network.particle.composition
 
-import cn.coostack.cooparticlesapi.utils.RelativeLocation
-import cn.coostack.cooparticlesapi.utils.builder.PointsBuilder
-import cn.coostack.cooparticlesapi.utils.helper.ScaleHelper
-import cn.coostack.cooparticlesapi.utils.helper.StatusHelper
-import cn.coostack.cooparticlesapi.utils.helper.impl.composition.CompositionBezierScaleHelper
-import cn.coostack.cooparticlesapi.utils.helper.impl.composition.CompositionScaleHelper
 import net.minecraft.network.PacketByteBuf
-
 import net.minecraft.world.phys.Vec3
 import java.util.UUID
 
@@ -25,21 +18,9 @@ class ParticleShapeComposition(uuid: UUID) : ParticleComposition(Vec3.ZERO, null
     var scaleHelper: ScaleHelper? = null
         private set
     var spawnAge = 0
-
-    /**
-     * 设置为true时 会利用scaleHelper 每tick增长一点
-     */
     var scalePreTick = false
         private set
-
-    /**
-     * 设置为true时 利用scaleHelper 每tick减弱一点
-     */
     var scaleReversed = false
-
-    /**
-     * 当反转到0时会自动清理粒子
-     */
     var reversedClean = true
 
     fun loadScaleHelper(min: Double, max: Double, scalingTick: Int): ParticleShapeComposition {
@@ -64,11 +45,6 @@ class ParticleShapeComposition(uuid: UUID) : ParticleComposition(Vec3.ZERO, null
         return this
     }
 
-    /**
-     * 改用apply是因为 要防止和addPreTickAction冲突
-     *
-     * @return
-     */
     fun applyDisplayAction(action: ParticleShapeComposition.() -> Unit): ParticleShapeComposition {
         invokes.add(action)
         return this
@@ -113,8 +89,7 @@ class ParticleShapeComposition(uuid: UUID) : ParticleComposition(Vec3.ZERO, null
         return this
     }
 
-
-    override fun getCodec(): cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<ParticleComposition> {
+    override fun getCodec(): CommonStreamCodec<ParticleComposition> {
         throw NotImplementedError("此类只作为客户端嵌套使用， 不能单独生成！ ")
     }
 

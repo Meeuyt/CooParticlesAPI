@@ -12,9 +12,8 @@ import cn.coostack.cooparticlesapi.platform.CooParticlesServices
 import cn.coostack.cooparticlesapi.reflect.CooAPIScanner
 import cn.coostack.cooparticlesapi.utils.RelativeLocation
 import io.netty.buffer.Unpooled
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.network.PacketByteBuf
-
+import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
 import java.lang.ref.ReferenceQueue
@@ -25,34 +24,16 @@ import kotlin.collections.set
 import kotlin.jvm.java
 
 object ParticleCompositionManager {
-    /**
-     * 弱引用保存已进入客户端显示生命周期的 Composition 实例。
-     *
-     * 示例：顶层 Composition 及其直接显示的子 Composition 会分别占一个条目。
-     * 禁止在此处强持有 Composition，否则 Emitter 临时创建的实例无法被回收。
-     */
     private val loadedClientCompositions = WeakIdentitySet<ParticleComposition>()
 
     val clientView = ConcurrentHashMap<UUID, ParticleComposition>()
 
     val serverView = ConcurrentHashMap<UUID, ParticleComposition>()
 
-    /**
-     * 只有玩家可见才会处理发包
-     */
     val playerPlayerVisibleSet = ConcurrentHashMap<UUID, HashSet<ParticleComposition>>()
 
-    val registeredTypes = ConcurrentHashMap<String, cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<ParticleComposition>>()
+    val registeredTypes = ConcurrentHashMap<String, ForgeStreamCodec<PacketByteBuf, ParticleComposition>>()
 
-    /**
-     * 登记或移除一个客户端活动 Composition。
-     *
-     * 示例：Composition 首次 `display()` 时传入 `true`，执行 `clear(true)` 时传入 `false`。
-     * 禁止为服务端仅用于同步的 Composition 传入 `true`。
-     *
-     * @param composition 需要更新活动状态的 Composition 实例
-     * @param loaded `true` 表示已加载到客户端，`false` 表示已离开客户端生命周期
-     */
     internal fun setClientLoaded(composition: ParticleComposition, loaded: Boolean) {
         if (loaded) {
             loadedClientCompositions.add(composition)
@@ -61,21 +42,11 @@ object ParticleCompositionManager {
         }
     }
 
-    /**
-     * 返回客户端当前活动的全部 Composition 实例数量。
-     *
-     * 示例：F3 调试信息用该值统计顶层、嵌套及 Emitter 直接显示的 Composition。
-     * 禁止把该值理解为服务端实例数或已注册类型数。
-     *
-     * @return 当前客户端活动 Composition 数量
-     */
     @JvmStatic
     fun loadedClientCount(): Int = loadedClientCompositions.size()
 
-    /** 返回当前客户端活动的全部 Composition 快照，包含嵌套实例。 */
     internal fun debugCompositions(): List<ParticleComposition> = loadedClientCompositions.snapshot()
 
-    /** 返回服务端当前活动 Composition 实例数。 */
     fun loadedServerCount(): Int = serverView.size
 
     fun addClient(composition: ParticleComposition) {
@@ -90,7 +61,6 @@ object ParticleCompositionManager {
         composition.display()
         sendCreateOrUpdate(composition)
     }
-
 
     fun register(randomInstance: ParticleComposition) {
         val id = randomInstance::class.java.name
@@ -118,7 +88,6 @@ object ParticleCompositionManager {
         val end = System.currentTimeMillis()
         CooParticlesConstants.logger.info("Compositions 注册完成 耗时 ${end - start} ms")
     }
-
 
     fun tickClient() {
         val iterator = clientView.entries.iterator()
@@ -216,7 +185,7 @@ object ParticleCompositionManager {
         }
         val registryAccess = CooParticlesAPI.registryAccessOrNull ?: return
         val type = composition::class.java.name
-        val buf = PacketByteBuf(Unpooled.buffer(), registryAccess)
+        val buf = RegistryFriendlyByteBuf(Unpooled.buffer(), registryAccess)
         val data = try {
             registeredTypes[type]!!.encode(buf, composition)
             ByteArray(buf.readableBytes()).also { buf.readBytes(it) }
@@ -291,16 +260,7 @@ object ParticleCompositionManager {
         }
     }
 
-    /**
-     * 清理当前客户端世界持有的所有 Composition。
-     *
-     * 示例：客户端断线或换世界时调用该方法，将顶层与嵌套实例一并移出活动计数。
-     * 禁止用该方法清理服务端 [serverView]。
-     */
     fun clearClient() {
-        // 这里必须走 clear(true) 强制销毁
-        // remove() 可能被使用者重写成延迟消散的语义 (例如先 status.disable() 等渐隐结束再真正销毁)
-        // 客户端断连/换世界要求立刻干净 否则 composition 会脱离 clientView 变成孤儿粒子
         clientView.values.forEach {
             it.clear(true)
         }
@@ -308,15 +268,12 @@ object ParticleCompositionManager {
         loadedClientCompositions.clear()
     }
 
-
     fun clearServer() {
-        // 同 clearClient 不能依赖使用者重写的 remove()
         serverView.onEach {
             it.value.clear(true)
         }.clear()
         playerPlayerVisibleSet.clear()
     }
-
 }
 
 private class WeakIdentitySet<T : Any> {
@@ -351,7 +308,6 @@ private class WeakIdentitySet<T : Any> {
     fun clear() {
         references.clear()
         while (collectedReferences.poll() != null) {
-            // 清空队列中已经失效的引用。
         }
     }
 

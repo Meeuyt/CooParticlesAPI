@@ -21,7 +21,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.network.PacketByteBuf
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
@@ -33,12 +33,6 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 
-/**
- * 通用发射器实现，兼容多种可控对象：
- * - [ControlableParticleData]
- * - [ParticleComposition]
- * - [DisplayEntity]
- */
 abstract class ClassEmitters(
     pos: Vec3,
     override var world: Level?,
@@ -55,18 +49,8 @@ abstract class ClassEmitters(
     var gravity: Double = 0.0
     val handlerList = ConcurrentHashMap<String, SortedMap<ParticleEventHandler, Boolean>>()
 
-    /**
-     * 是否启用线段插值器。
-     *
-     * 如果设置为 `true`，每次发射会沿插值结果逐点生成；设置为 `false` 时，每 tick 只执行一次生成。
-     */
     var enableInterpolator = false
 
-    /**
-     * 发射器位移插值器。
-     *
-     * 仅在 [enableInterpolator] 为 `true` 时生效，可通过 `setRefiner` 调整细分密度。
-     */
     var emittersInterpolator: Interpolator = LineEmitterInterpolator()
         .setRefiner(5.0)
 
@@ -103,7 +87,7 @@ abstract class ClassEmitters(
     }
 
     companion object {
-        fun encodeBase(data: ClassEmitters, buf: PacketByteBuf) {
+        fun encodeBase(data: ClassEmitters, buf: FriendlyByteBuf) {
             val handles = data.collectEventHandles()
             buf.writeInt(handles.size)
             handles.forEach {
@@ -125,8 +109,7 @@ abstract class ClassEmitters(
             data.wind.getCodec().encode(buf, data.wind)
         }
 
-        /** 写法：先在 codec 的 decode 中创建对象，再把 `buf` 和 `container` 传入此方法，最后继续解码子类字段。 */
-        fun decodeBase(container: ClassEmitters, buf: PacketByteBuf) {
+        fun decodeBase(container: ClassEmitters, buf: FriendlyByteBuf) {
             val handlerCount = buf.readInt()
             val handlers = ArrayList<ParticleEventHandler>()
             repeat(handlerCount) {
@@ -168,12 +151,10 @@ abstract class ClassEmitters(
         }
     }
 
-    /** 风力方向。 */
     var wind: WindDirection = GlobalWindDirection(Vec3.ZERO).also {
         it.loadEmitters(this)
     }
 
-    /** 质量，单位 g。 */
     var mass: Double = 1.0
 
     override fun start() {
@@ -273,39 +254,12 @@ abstract class ClassEmitters(
         return player.position().distanceTo(spawnPos) <= visibleRange
     }
 
-    /**
-     * 服务器和客户端都会执行此方法。
-     *
-     * 如需仅在服务端执行，请自行判断：
-     * ```kotlin
-     * if (!world!!.isClientSide) { ... }
-     * ```
-     */
     abstract fun doTick()
 
-    /**
-     * 可控对象生成器。
-     *
-     * @param lerpProgress 发射器位移插值器的插值进度
-     */
     abstract fun genControls(lerpProgress: Float): List<Pair<SerializableData, RelativeLocation>>
 
-    /**
-     * 在一次生成前会执行。
-     *
-     * @param current 当前插值点的位置
-     * @param lerpProgress 当前生成进度
-     */
     protected open fun doSubtick(current: Vec3, lerpProgress: Float) {}
 
-    /**
-     * 通用可控对象的生成后回调。
-     *
-     * @param data 当前生成对象的数据
-     * @param spawnPos 生成位置（对象创建后再改该值无效）
-     * @param particleLerpProgress 当前对象在本次批量生成中的进度
-     * @param posLerpProgress 发射器位移插值进度（未启用插值时恒为 1）
-     */
     abstract fun singleControlableAction(
         controler: Controlable<*>,
         data: SerializableData,
@@ -315,9 +269,6 @@ abstract class ClassEmitters(
         posLerpProgress: Float,
     )
 
-    /**
-     * 处理单个 controler 的移动方案
-     */
     protected open fun moveSingleControler(
         controler: Controlable<*>,
         data: SerializableData,
@@ -327,14 +278,6 @@ abstract class ClassEmitters(
         controler.teleportTo(to)
     }
 
-    /**
-     * 读取当前 controler 世界坐标。
-     *
-     * 子类可重写以支持自定义可控对象，默认支持：
-     * - [ControlableParticle]
-     * - [ParticleComposition]
-     * - [DisplayEntity]
-     */
     protected open fun resolveControlerPos(
         controler: Controlable<*>,
         data: SerializableData
@@ -348,11 +291,6 @@ abstract class ClassEmitters(
         }
     }
 
-    /**
-     * 读取当前 controler 的速度向量。
-     *
-     * 子类可重写以支持自定义数据类型；默认对 [ControlableParticleData] 生效。
-     */
     protected open fun resolveControlerVelocity(
         controler: Controlable<*>,
         data: SerializableData
@@ -387,12 +325,6 @@ abstract class ClassEmitters(
         }
     }
 
-
-    /**
-     * 数据同步需要实现此方法。
-     *
-     * @param emitters 需要同步到当前实例的发射器模板
-     */
     override fun update(emitters: ParticleEmitters) {
         if (emitters !is ClassEmitters) return
         this.posState.setCodecValue(emitters.pos)
@@ -407,5 +339,4 @@ abstract class ClassEmitters(
         this.emittersInterpolator.setRefiner(emitters.emittersInterpolator.refinerCount)
         ParticleEmittersRegistryHelper.updateEmitter(this, emitters)
     }
-
 }

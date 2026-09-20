@@ -2,7 +2,6 @@ package cn.coostack.cooparticlesapi.network.packet.server
 
 import cn.coostack.cooparticlesapi.CooParticlesConstants
 import net.minecraft.network.PacketByteBuf
-
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.phys.Vec3
 
@@ -18,7 +17,7 @@ class PacketCameraShakeS2C(
     val yawOffset: Float,
     val pitchOffset: Float,
     val instant: Boolean
-)  {
+) {
     constructor(range: Double, origin: Vec3, amplitude: Double, tick: Int) : this(
         CameraOperation.SHAKE,
         range,
@@ -44,45 +43,46 @@ class PacketCameraShakeS2C(
 
     companion object {
         private val identifierID = ResourceLocation.fromNamespaceAndPath(CooParticlesConstants.MOD_ID, "camara_shake")
-        val payloadID = ResourceLocation(identifierID)
+        val payloadID = ResourceLocation.fromNamespaceAndPath(CooParticlesConstants.MOD_ID, "camara_shake")
 
-        val CODEC: cn.coostack.cooparticlesapi.network.packet.api.CommonCodec<PacketCameraShakeS2C> =
+        val CODEC = ForgeStreamCodec.of({ packet, buf ->
+            buf.writeByte(packet.operation.id)
             buf.writeDouble(packet.range)
-                buf.writeVec3(packet.origin)
-                buf.writeDouble(packet.amplitude)
-                buf.writeInt(packet.tick)
-                buf.writeDouble(packet.frequency)
-                buf.writeBoolean(packet.attenuateByDistance)
-                buf.writeVec3(packet.position)
-                buf.writeFloat(packet.yawOffset)
-                buf.writeFloat(packet.pitchOffset)
-                buf.writeBoolean(packet.instant)
-            }, { buf ->
-                val operation = operationFromId(buf.readUnsignedByte().toInt())
-                val range = buf.readDouble()
-                val origin = buf.readVec3()
-                val amplitude = buf.readDouble()
-                val tick = buf.readInt()
-                val frequency = buf.readDouble()
-                val attenuateByDistance = buf.readBoolean()
-                val position = buf.readVec3()
-                val yawOffset = buf.readFloat()
-                val pitchOffset = buf.readFloat()
-                val instant = buf.readBoolean()
-                PacketCameraShakeS2C(
-                    operation,
-                    range,
-                    origin,
-                    amplitude,
-                    tick,
-                    frequency,
-                    attenuateByDistance,
-                    position,
-                    yawOffset,
-                    pitchOffset,
-                    instant
-                )
-            })
+            buf.writeVec3(packet.origin)
+            buf.writeDouble(packet.amplitude)
+            buf.writeInt(packet.tick)
+            buf.writeDouble(packet.frequency)
+            buf.writeBoolean(packet.attenuateByDistance)
+            buf.writeVec3(packet.position)
+            buf.writeFloat(packet.yawOffset)
+            buf.writeFloat(packet.pitchOffset)
+            buf.writeBoolean(packet.instant)
+        }, { buf ->
+            val operation = operationFromId(buf.readUnsignedByte().toInt())
+            val range = buf.readDouble()
+            val origin = buf.readVec3()
+            val amplitude = buf.readDouble()
+            val tick = buf.readInt()
+            val frequency = buf.readDouble()
+            val attenuateByDistance = buf.readBoolean()
+            val position = buf.readVec3()
+            val yawOffset = buf.readFloat()
+            val pitchOffset = buf.readFloat()
+            val instant = buf.readBoolean()
+            PacketCameraShakeS2C(
+                operation,
+                range,
+                origin,
+                amplitude,
+                tick,
+                frequency,
+                attenuateByDistance,
+                position,
+                yawOffset,
+                pitchOffset,
+                instant
+            )
+        })
 
         fun shake(range: Double, origin: Vec3, amplitude: Double, tick: Int): PacketCameraShakeS2C {
             return shake(range, origin, amplitude, tick, 1.0, false)
@@ -197,6 +197,7 @@ class PacketCameraShakeS2C(
         }
 
         private fun operationFromId(id: Int): CameraOperation {
-            return CameraOperation.values().firstOrNull { it.id == id } ?: CameraOperation.SHAKE
+            return CameraOperation.entries.firstOrNull { it.id == id } ?: CameraOperation.SHAKE
         }
     }
+}

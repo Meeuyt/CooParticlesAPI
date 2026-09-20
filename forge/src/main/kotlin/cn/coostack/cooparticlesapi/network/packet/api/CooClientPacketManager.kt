@@ -10,7 +10,7 @@ import cn.coostack.cooparticlesapi.network.packet.api.envelope.CooPacketEnvelope
 import cn.coostack.cooparticlesapi.network.packet.api.envelope.CooPacketEnvelopeS2C
 import cn.coostack.cooparticlesapi.performance.PerformanceStatusNetworkEndpoint
 import cn.coostack.cooparticlesapi.performance.PerformanceStatusNetworkMetrics
-import cn.coostack.cooparticlesapi.platform.ForgeNetworkChannel
+import cn.coostack.cooparticlesapi.platform.CooParticlesServices
 import net.minecraft.client.Minecraft
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -29,14 +29,6 @@ object CooClientPacketManager {
     )
 
     private val pending = ConcurrentHashMap<Long, Pending>()
-    private lateinit var channel: ForgeNetworkChannel
-
-    fun init(channel: ForgeNetworkChannel) {
-        this.channel = channel
-        channel.registerEnvelopeS2C { envelope ->
-            handleS2C(envelope)
-        }
-    }
 
     @JvmStatic
     fun sendTo(packet: CooPacket): Boolean {
@@ -123,7 +115,7 @@ object CooClientPacketManager {
         val kind = CooPacketKind.fromId(envelope.kindId)
         val packet = CooPacketRegistry.decode(envelope.packetId, envelope.data)
         if (packet == null) {
-            CooParticlesConstants.logger.warn("收到未知 CooPacket: ${envelope.packetId} (kind=$kind)")
+            CooParticlesConstants.logger.warn("Received unknown CooPacket: ${envelope.packetId} (kind=$kind)")
             return
         }
         val event = CooEventBus.call(
@@ -142,14 +134,14 @@ object CooClientPacketManager {
         try {
             packet.onClientReceive(ctx)
         } catch (e: Throwable) {
-            CooParticlesConstants.logger.error("CooPacket onClientReceive 异常: ${envelope.packetId}", e)
+            CooParticlesConstants.logger.error("CooPacket onClientReceive exception: ${envelope.packetId}", e)
         }
 
         if (kind == CooPacketKind.RESPONSE) {
             val pendingEntry = pending.remove(envelope.correlationId) ?: return
             if (!pendingEntry.expectType.isInstance(packet)) {
                 CooParticlesConstants.logger.warn(
-                    "CooPacket 响应类型不匹配: 期望 ${pendingEntry.expectType.name}, 实际 ${packet::class.java.name}"
+                    "CooPacket response type mismatch: expected ${pendingEntry.expectType.name}, got ${packet::class.java.name}"
                 )
                 return
             }
@@ -157,7 +149,7 @@ object CooClientPacketManager {
                 pendingEntry.callback(packet)
             } catch (e: Throwable) {
                 CooParticlesConstants.logger.error(
-                    "CooPacket request 回调异常 (correlationId=${envelope.correlationId})",
+                    "CooPacket request callback exception (correlationId=${envelope.correlationId})",
                     e
                 )
             }
@@ -176,7 +168,7 @@ object CooClientPacketManager {
     ): Boolean {
         if (!CooPacketRegistry.isRegistered(packet::class.java)) {
             CooParticlesConstants.logger.error(
-                "CooPacket 未注册, 无法发送: ${packet::class.java.name} (id=${packet.id()})"
+                "CooPacket not registered, cannot send: ${packet::class.java.name} (id=${packet.id()})"
             )
             return false
         }
@@ -194,7 +186,7 @@ object CooClientPacketManager {
         val data = try {
             CooPacketRegistry.encode(packet)
         } catch (e: Throwable) {
-            CooParticlesConstants.logger.error("CooPacket 编码失败: ${packet::class.java.name}", e)
+            CooParticlesConstants.logger.error("CooPacket encode failed: ${packet::class.java.name}", e)
             return false
         }
         val envelope = CooPacketEnvelopeC2S(
@@ -204,7 +196,7 @@ object CooClientPacketManager {
             timeoutTicks = timeoutTicks,
             data = data,
         )
-        channel.sendEnvelopeC2S(envelope)
+        CooParticlesServices.CLIENT_NETWORK.send(envelope)
         PerformanceStatusNetworkMetrics.recordSent(
             PerformanceStatusNetworkEndpoint.CLIENT,
             data.size,

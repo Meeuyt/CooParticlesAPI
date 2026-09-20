@@ -1,7 +1,6 @@
 package cn.coostack.cooparticlesapi.network.packet.api.envelope
 
 import cn.coostack.cooparticlesapi.CooParticlesConstants
-import cn.coostack.cooparticlesapi.network.packet.api.CooPacket
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.resources.ResourceLocation
 
@@ -11,13 +10,8 @@ class CooPacketEnvelopeC2S(
     val correlationId: Long,
     val timeoutTicks: Int,
     val data: ByteArray,
-) : CooPacket() {
-
+) {
     companion object {
-        private val ID = ResourceLocation.fromNamespaceAndPath(
-            CooParticlesConstants.MOD_ID, "coo_packet_envelope_c2s"
-        )
-
         @JvmStatic
         fun write(buf: PacketByteBuf, packet: CooPacketEnvelopeC2S) {
             buf.writeVarInt(packet.kindId)
@@ -38,6 +32,4 @@ class CooPacketEnvelopeC2S(
             )
         }
     }
-
-    override fun id(): ResourceLocation = ID
 }
