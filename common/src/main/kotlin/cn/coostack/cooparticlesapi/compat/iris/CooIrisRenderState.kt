@@ -10,7 +10,7 @@ object CooIrisRenderState {
     fun beginFrame() {}
 
     @JvmStatic
-    fun captureSceneDepth(depth: DepthTexture?, width: Int, height: Int) {}
+    fun captureSceneDepth(depthTextureId: Int, width: Int, height: Int) {}
 
     @JvmStatic
     fun captureTerrainDepth(textureId: Int, width: Int, height: Int) {}
