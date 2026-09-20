@@ -38,8 +38,8 @@ import cn.coostack.cooparticlesapi.utils.interpolator.data.InterpolatorRelativeL
 import com.mojang.serialization.Codec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.codec.ByteBufCodecs
+import net.minecraft.network.PacketByteBuf
+
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
@@ -179,11 +179,12 @@ object CodecHelper {
         register(
             BlockState::class.java,
             CommonStreamCodec.of({ buf, s ->
-                ByteBufCodecs.idMapper(Block.BLOCK_STATE_REGISTRY)
-                    .encode(buf, s)
+                val id = net.minecraft.core.registries.BuiltInRegistries.BLOCK_STATE_REGISTRY.getId(s)
+                buf.writeVarInt(id)
             }, { buf ->
-                ByteBufCodecs.idMapper(Block.BLOCK_STATE_REGISTRY)
-                    .decode(buf)
+                val id = buf.readVarInt()
+                net.minecraft.core.registries.BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id)
+                    ?: net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()
             })
         )
         register(
@@ -509,7 +510,7 @@ object CodecHelper {
                 val size = buf.readVarInt()
                 val list = ArrayList<Any?>(size)
                 repeat(size) {
-                    list.add(elementCodec.decode(buf))
+                    list.add(elementCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState())
                 }
                 list
             }
@@ -536,7 +537,7 @@ object CodecHelper {
                 val size = buf.readVarInt()
                 val set = LinkedHashSet<Any?>(size)
                 repeat(size) {
-                    set.add(elementCodec.decode(buf))
+                    set.add(elementCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState())
                 }
                 set
             }
@@ -566,7 +567,7 @@ object CodecHelper {
                 val size = buf.readVarInt()
                 val map = LinkedHashMap<Any?, Any?>(size)
                 repeat(size) {
-                    map[keyCodec.decode(buf)] = valueCodec.decode(buf)
+                    map[keyCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState()] = valueCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState()
                 }
                 map
             }
@@ -595,7 +596,7 @@ object CodecHelper {
             },
             { buf ->
                 val size = buf.readVarInt()
-                List(size) { elementCodec.decode(buf) }
+                List(size) { elementCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState() }
             },
         )
     }
@@ -623,7 +624,7 @@ object CodecHelper {
             { buf ->
                 val size = buf.readVarInt()
                 LinkedHashSet<Any>(size).apply {
-                    repeat(size) { add(elementCodec.decode(buf)) }
+                    repeat(size) { add(elementCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState()) }
                 }
             },
         )
@@ -655,7 +656,7 @@ object CodecHelper {
             { buf ->
                 val size = buf.readVarInt()
                 LinkedHashMap<Any, Any>(size).apply {
-                    repeat(size) { put(keyCodec.decode(buf), valueCodec.decode(buf)) }
+                    repeat(size) { put(keyCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState(), valueCodecval id = buf.readVarInt(); BuiltInRegistries.BLOCK_STATE_REGISTRY.byId(id) ?: Blocks.AIR.defaultBlockState()) }
                 }
             },
         )
