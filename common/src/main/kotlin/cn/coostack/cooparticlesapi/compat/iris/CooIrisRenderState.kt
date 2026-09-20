@@ -1,17 +1,33 @@
 package cn.coostack.cooparticlesapi.compat.iris
 
+import kotlin.jvm.JvmStatic
 import net.irisshaders.iris.gl.framebuffer.GlFramebuffer
 import net.irisshaders.iris.targets.DepthTexture
 import net.irisshaders.iris.targets.RenderTargets
 
 object CooIrisRenderState {
+    @JvmStatic
     fun beginFrame() {}
+
+    @JvmStatic
     fun captureSceneDepth(depth: DepthTexture?, width: Int, height: Int) {}
+
+    @JvmStatic
     fun captureTerrainDepth(textureId: Int, width: Int, height: Int) {}
+
+    @JvmStatic
     fun captureNoHandDepth(textureId: Int, width: Int, height: Int) {}
+
+    @JvmStatic
     fun captureFinalColor(colorAttachment0: Any?, framebufferId: Int, width: Int, height: Int) {}
+
+    @JvmStatic
     fun clear() {}
+
+    @JvmStatic
     fun clearFinalColor() {}
+
+    @JvmStatic
     fun snapshot(): IrisSnapshot = EmptySnapshot
 
     object EmptySnapshot : IrisSnapshot {
