@@ -3,8 +3,7 @@ package cn.coostack.cooparticlesapi.network.particle.emitters
 import cn.coostack.cooparticlesapi.cparticle.CParticleColorCurve
 import cn.coostack.cooparticlesapi.cparticle.CParticleCurve
 import cn.coostack.cooparticlesapi.utils.GraphMathHelper
-import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.PacketByteBuf
 import org.joml.Vector3f
 import kotlin.math.roundToInt
 import kotlin.random.Random

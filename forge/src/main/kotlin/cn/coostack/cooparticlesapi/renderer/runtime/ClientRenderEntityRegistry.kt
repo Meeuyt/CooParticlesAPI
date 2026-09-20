@@ -1,7 +1,7 @@
 package cn.coostack.cooparticlesapi.renderer.runtime
 
 import cn.coostack.cooparticlesapi.renderer.RenderEntity
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.resources.ResourceLocation
 
 object ClientRenderEntityRegistry {

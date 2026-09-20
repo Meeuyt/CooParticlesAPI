@@ -7,7 +7,7 @@ import cn.coostack.cooparticlesapi.coofx.server.CooFxSceneRenderEntity
 import cn.coostack.cooparticlesapi.reflect.CooAPIScanner
 import cn.coostack.cooparticlesapi.reflect.SimpleClassInfo
 import cn.coostack.cooparticlesapi.renderer.RenderEntity
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3

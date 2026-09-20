@@ -24,7 +24,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.BlockHitResult
@@ -94,7 +94,7 @@ abstract class ClassParticleEmitters(
     }
 
     companion object {
-        fun encodeBase(data: ClassParticleEmitters, buf: FriendlyByteBuf) {
+        fun encodeBase(data: ClassParticleEmitters, buf: PacketByteBuf) {
             val handles = data.collectEventHandles()
             buf.writeInt(handles.size)
             handles.forEach {
@@ -117,7 +117,7 @@ abstract class ClassParticleEmitters(
             data.wind.getCodec().encode(buf, data.wind)
         }
 
-        fun decodeBase(container: ClassParticleEmitters, buf: FriendlyByteBuf) {
+        fun decodeBase(container: ClassParticleEmitters, buf: PacketByteBuf) {
             val handlerCount = buf.readInt()
             val handlerList = ArrayList<ParticleEventHandler>()
             repeat(handlerCount) {

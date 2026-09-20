@@ -1,14 +1,14 @@
 package cn.coostack.cooparticlesapi.utils.interpolator.data
 
 import cn.coostack.cooparticlesapi.utils.GraphMathHelper
-import net.minecraft.network.FriendlyByteBuf
+
 import org.joml.Quaternionf
 
 class InterpolatorQuaternionf(value: Quaternionf) : AbstractInterpolatorData<Quaternionf>(value) {
 
     companion object {
         @JvmStatic
-        val CODEC = ForgeStreamCodec.of<PacketByteBuf, InterpolatorQuaternionf>(
+        val CODEC = ForgeStreamCodec.of(InterpolatorQuaternionf>(
             { buf, data ->
                 buf.writeFloat(data.value.x)
                 buf.writeFloat(data.value.y)

@@ -1,13 +1,13 @@
 package cn.coostack.cooparticlesapi.utils.interpolator.data
 
 import cn.coostack.cooparticlesapi.utils.GraphMathHelper
-import net.minecraft.network.FriendlyByteBuf
+
 
 class InterpolatorFloat(value: Float) : AbstractInterpolatorData<Float>(value) {
 
     companion object {
         @JvmStatic
-        val CODEC = ForgeStreamCodec.of<PacketByteBuf, InterpolatorFloat>(
+        val CODEC = ForgeStreamCodec.of(InterpolatorFloat>(
             { buf, data ->
                 buf.writeFloat(data.value)
             }, {

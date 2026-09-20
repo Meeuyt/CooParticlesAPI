@@ -12,7 +12,7 @@ import cn.coostack.cooparticlesapi.utils.RelativeLocation
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Camera
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
@@ -24,7 +24,7 @@ abstract class DisplayEntity(
     var world: Level?
 ) : Controlable<DisplayEntity>, ServerControler<DisplayEntity>, Tickable<DisplayEntity>, NetworkDirtyMarkable {
     companion object {
-        fun encodeBase(data: DisplayEntity, buf: FriendlyByteBuf) {
+        fun encodeBase(data: DisplayEntity, buf: PacketByteBuf) {
             buf.writeVec3(data.pos)
             buf.writeFloat(data.yaw)
             buf.writeFloat(data.pitch)
@@ -34,7 +34,7 @@ abstract class DisplayEntity(
             buf.writeUUID(data.controlUUID)
         }
 
-        fun decodeBase(instance: DisplayEntity, buf: FriendlyByteBuf) {
+        fun decodeBase(instance: DisplayEntity, buf: PacketByteBuf) {
             instance.apply {
                 pos = buf.readVec3()
                 yaw = buf.readFloat()

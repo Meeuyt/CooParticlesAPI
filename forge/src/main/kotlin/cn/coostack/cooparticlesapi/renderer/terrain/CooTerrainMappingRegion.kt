@@ -1,6 +1,6 @@
 package cn.coostack.cooparticlesapi.renderer.terrain
 
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.world.phys.Vec3
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -11,7 +11,7 @@ sealed interface CooTerrainMappingRegion {
 
     fun contains(position: Vec3): Boolean
 
-    fun encode(buffer: FriendlyByteBuf) {
+    fun encode(buffer: PacketByteBuf) {
         buffer.writeVarInt(WIRE_VERSION)
         buffer.writeResourceLocation(type.id)
         when (this) {
@@ -186,7 +186,7 @@ sealed interface CooTerrainMappingRegion {
     companion object {
         private const val WIRE_VERSION = 2
 
-        fun decode(buffer: FriendlyByteBuf): CooTerrainMappingRegion {
+        fun decode(buffer: PacketByteBuf): CooTerrainMappingRegion {
             val version = buffer.readVarInt()
             require(version in 1..WIRE_VERSION) { "Unsupported terrain mapping region version: $version" }
             val typeId = buffer.readResourceLocation()

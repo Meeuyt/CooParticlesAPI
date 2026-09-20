@@ -1,7 +1,7 @@
 package cn.coostack.cooparticlesapi.cparticle
 
 import net.minecraft.network.PacketByteBuf
-import net.minecraft.network.codec.StreamCodec
+
 import org.joml.Vector3f
 import org.joml.Vector3fc
 

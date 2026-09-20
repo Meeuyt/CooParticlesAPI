@@ -14,8 +14,6 @@ import cn.coostack.cooparticlesapi.platform.CooParticlesServices
 import cn.coostack.cooparticlesapi.reflect.SimpleClassInfo
 import io.netty.buffer.Unpooled
 import net.minecraft.client.Minecraft
-import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
@@ -294,10 +292,8 @@ object ParticleEmittersManager {
 
     private fun encodeEmittersToArray(emitters: ParticleEmitters): ByteArray {
         val codec = emitters.getCodec()
-        val registryAccess = emitters.world?.registryAccess() ?: CooParticlesAPI.registryAccessOrNull ?: return ByteArray(0)
-        val buf = RegistryFriendlyByteBuf(
+        val buf = PacketByteBuf(
             Unpooled.buffer(),
-            registryAccess
         )
         return try {
             codec.encode(buf, emitters)

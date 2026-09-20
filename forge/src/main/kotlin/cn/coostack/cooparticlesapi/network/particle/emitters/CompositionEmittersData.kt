@@ -1,8 +1,7 @@
 package cn.coostack.cooparticlesapi.network.particle.emitters
 
 import cn.coostack.cooparticlesapi.network.particle.composition.ParticleComposition
-import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.PacketByteBuf
 
 open class CompositionEmittersData : ControlableParticleData() {
     companion object {

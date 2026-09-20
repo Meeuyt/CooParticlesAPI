@@ -1,63 +1,63 @@
 package cn.coostack.cooparticlesapi.renderer.post
 
 import cn.coostack.cooparticlesapi.renderer.pipeline.CooUniformValue
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.resources.ResourceLocation
 
 internal sealed interface PostEffectParamValue {
-    fun write(buf: FriendlyByteBuf)
+    fun write(buf: PacketByteBuf)
 
     data class BoolValue(val value: Boolean) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeBoolean(value)
         }
     }
 
     data class IntValue(val value: Int) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeInt(value)
         }
     }
 
     data class LongValue(val value: Long) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeLong(value)
         }
     }
 
     data class FloatValue(val value: Float) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeFloat(value)
         }
     }
 
     data class DoubleValue(val value: Double) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeDouble(value)
         }
     }
 
     data class StringValue(val value: String) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeUtf(value)
         }
     }
 
     data class ResourceValue(val value: ResourceLocation) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeResourceLocation(value)
         }
     }
 
     data class Vec2Value(val x: Float, val y: Float) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeFloat(x)
             buf.writeFloat(y)
         }
     }
 
     data class Vec3Value(val x: Double, val y: Double, val z: Double) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeDouble(x)
             buf.writeDouble(y)
             buf.writeDouble(z)
@@ -65,7 +65,7 @@ internal sealed interface PostEffectParamValue {
     }
 
     data class ColorValue(val red: Float, val green: Float, val blue: Float, val alpha: Float = 1f) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             buf.writeFloat(red)
             buf.writeFloat(green)
             buf.writeFloat(blue)
@@ -74,18 +74,18 @@ internal sealed interface PostEffectParamValue {
     }
 
     data class UniformValue(val value: CooUniformValue) : PostEffectParamValue {
-        override fun write(buf: FriendlyByteBuf) {
+        override fun write(buf: PacketByteBuf) {
             CooUniformValue.STREAM_CODEC.encode(buf, value)
         }
     }
 
     companion object {
-        fun writeTyped(buf: FriendlyByteBuf, value: PostEffectParamValue) {
+        fun writeTyped(buf: PacketByteBuf, value: PostEffectParamValue) {
             buf.writeUtf(value.typeId)
             value.write(buf)
         }
 
-        fun readTyped(buf: FriendlyByteBuf): PostEffectParamValue {
+        fun readTyped(buf: PacketByteBuf): PostEffectParamValue {
             return when (val type = buf.readUtf()) {
                 "bool" -> BoolValue(buf.readBoolean())
                 "int" -> IntValue(buf.readInt())
@@ -150,7 +150,7 @@ internal data class PostEffectParams(
 
     fun plus(name: String, value: PostEffectParamValue): PostEffectParams = PostEffectParams(values + (name to value))
 
-    fun write(buf: FriendlyByteBuf) {
+    fun write(buf: PacketByteBuf) {
         buf.writeInt(values.size)
         values.toSortedMap().forEach { (name, value) ->
             buf.writeUtf(name)
@@ -161,7 +161,7 @@ internal data class PostEffectParams(
     companion object {
         val EMPTY = PostEffectParams()
 
-        fun read(buf: FriendlyByteBuf): PostEffectParams {
+        fun read(buf: PacketByteBuf): PostEffectParams {
             val count = buf.readInt()
             val values = LinkedHashMap<String, PostEffectParamValue>(count)
             repeat(count) {

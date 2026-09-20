@@ -4,8 +4,6 @@ import cn.coostack.cooparticlesapi.cparticle.CParticleColorCurve
 import cn.coostack.cooparticlesapi.cparticle.CParticleCurve
 import cn.coostack.cooparticlesapi.cparticle.CParticleTextureSource
 import cn.coostack.cooparticlesapi.cparticle.CParticleUpdateMode
-import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
 import org.joml.Vector3f
 
 open class ControlableCParticleData : ControlableParticleData() {

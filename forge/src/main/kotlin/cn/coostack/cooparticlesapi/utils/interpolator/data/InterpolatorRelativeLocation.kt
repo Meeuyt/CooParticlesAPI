@@ -2,14 +2,14 @@ package cn.coostack.cooparticlesapi.utils.interpolator.data
 
 import cn.coostack.cooparticlesapi.utils.GraphMathHelper
 import cn.coostack.cooparticlesapi.utils.RelativeLocation
-import net.minecraft.network.FriendlyByteBuf
+
 import net.minecraft.world.phys.Vec3
 
 class InterpolatorRelativeLocation(value: RelativeLocation) : AbstractInterpolatorData<RelativeLocation>(value) {
 
     companion object {
         @JvmStatic
-        val CODEC = ForgeStreamCodec.of<PacketByteBuf, InterpolatorRelativeLocation>(
+        val CODEC = ForgeStreamCodec.of(InterpolatorRelativeLocation>(
             { buf, data ->
                 buf.writeDouble(data.value.x)
                 buf.writeDouble(data.value.y)

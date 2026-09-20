@@ -17,7 +17,7 @@ import cn.coostack.cooparticlesapi.utils.interpolator.Interpolator
 import cn.coostack.cooparticlesapi.utils.interpolator.emitters.LineEmitterInterpolator
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import org.joml.Quaternionf

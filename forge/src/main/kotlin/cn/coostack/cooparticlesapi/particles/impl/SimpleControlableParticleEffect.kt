@@ -6,7 +6,6 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import io.netty.buffer.Unpooled
 import net.minecraft.core.particles.ParticleType
-import net.minecraft.network.FriendlyByteBuf
 import java.util.UUID
 
 abstract class SimpleControlableParticleEffect(
