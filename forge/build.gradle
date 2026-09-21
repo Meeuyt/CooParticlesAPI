@@ -87,7 +87,7 @@ dependencies {
     compileOnly fileTree(dir: "../compile_only_depend", includes: ["*.jar"])
     compileOnly "maven.modrinth:sodium:mc1.20.1-0.5.8-forge"
     implementation "thedarkcolour:kotlinforforge-forge:5.10.0"
-    additionalRuntimeClasspath fileTree(dir: "../depend", includes: ["*.jar"])
+    runtimeOnly fileTree(dir: "../depend", includes: ["*.jar"])
 }
 
 sourceSets.main.resources {
