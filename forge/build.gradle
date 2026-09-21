@@ -14,8 +14,9 @@ buildscript {
 
 plugins {
     id 'multiloader-loader'
-    id 'net.minecraftforge.gradle' version '5.2.5'
 }
+
+apply plugin: 'net.minecraftforge.gradle'
 
 tasks.javadoc {
     enabled = false
