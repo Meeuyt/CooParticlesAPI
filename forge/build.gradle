@@ -1,3 +1,7 @@
+plugins {
+    id 'multiloader-loader'
+}
+
 buildscript {
     repositories {
         maven {
@@ -8,12 +12,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:5.1.44"
+        classpath "net.minecraftforge.gradle:ForgeGradle:6.0.24"
     }
-}
-
-plugins {
-    id 'multiloader-loader'
 }
 
 apply plugin: 'net.minecraftforge.gradle'
