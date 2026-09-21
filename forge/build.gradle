@@ -14,7 +14,7 @@ buildscript {
 
 plugins {
     id 'multiloader-loader'
-    id 'net.minecraftforge.gradle' version '5.2.5'
+    id 'net.minecraftforge.gradle' version '6.0.24'
 }
 
 tasks.javadoc {
