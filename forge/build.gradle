@@ -1,8 +1,20 @@
+buildscript {
+    repositories {
+        maven {
+            name = "Forge"
+            url = uri("https://maven.minecraftforge.net")
+        }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "net.minecraftforge.gradle:ForgeGradle:6.0.24"
+    }
+}
+
 plugins {
     id 'multiloader-loader'
 }
-
-buildscript {
     repositories {
         maven {
             name = "Forge"
@@ -48,9 +60,11 @@ minecraft {
 }
 
 tasks.register("sourceWithCommon", Jar) {
-    def other = project(":common").tasks.named("sourcesJar")
-    dependsOn(other)
-    from zipTree(other.get().archiveFile)
+    def other = project(":common").tasks.findByName("sourcesJar")
+    if (other != null) {
+        dependsOn(other)
+        from zipTree(other.archiveFile)
+    }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     destinationDirectory.set(file("../builds/sources"))
     archiveFileName = "${rootProject.mod_name}-Forge-Source-${rootProject.version}.jar"
