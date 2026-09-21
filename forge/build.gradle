@@ -1,6 +1,20 @@
+buildscript {
+    repositories {
+        maven {
+            name = "Forge"
+            url = uri("https://maven.minecraftforge.net")
+        }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "net.minecraftforge.gradle:ForgeGradle:5.2.5"
+    }
+}
+
 plugins {
     id 'multiloader-loader'
-    id 'net.minecraftforge.gradle' version '6.0.24'
+    id 'net.minecraftforge.gradle' version '5.2.5'
 }
 
 tasks.javadoc {
@@ -12,7 +26,7 @@ tasks.named('processResources', ProcessResources) {
 }
 
 minecraft {
-    minecraft_version = '1.20.1'
+    version = '1.20.1'
     mappings channel: 'parchment', version: '1.20.1-2024.07.07'
     runs {
         client {
